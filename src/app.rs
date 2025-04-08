@@ -147,39 +147,47 @@ impl MyApp {
             });
         }
 
-        // Show dropped files (if any):
-        if !self.dropped_files.is_empty() {
+        // Show each dropped file in its own window:
+        let mut indices_to_remove = vec![];
+        for (index, file) in self.dropped_files.iter_mut().enumerate() {
+            let file = file.dropped_file();
             let mut open = true;
-            egui::Window::new("Dropped files")
+
+            egui::Window::new(format!("Dropped File: {}", file.name))
+                .id(Id::new(file.path.clone()))
                 .open(&mut open)
                 .show(ctx, |ui| {
-                    for file in &self.dropped_files {
-                        let file = file.dropped_file();
-                        let mut info = if let Some(path) = &file.path {
-                            path.display().to_string()
-                        } else if !file.name.is_empty() {
-                            file.name.clone()
-                        } else {
-                            "???".to_owned()
-                        };
+                    let mut info = if let Some(path) = &file.path {
+                        path.display().to_string()
+                    } else if !file.name.is_empty() {
+                        file.name.clone()
+                    } else {
+                        "???".to_owned()
+                    };
 
-                        let mut additional_info = vec![];
-                        if !file.mime.is_empty() {
-                            additional_info.push(format!("type: {}", file.mime));
-                        }
-                        if let Some(bytes) = &file.bytes {
-                            additional_info.push(format!("{} bytes", bytes.len()));
-                        }
-                        if !additional_info.is_empty() {
-                            info += &format!(" ({})", additional_info.join(", "));
-                        }
-
-                        ui.label(info);
+                    let mut additional_info = vec![];
+                    if !file.mime.is_empty() {
+                        additional_info.push(format!("type: {}", file.mime));
                     }
+                    if let Some(bytes) = &file.bytes {
+                        additional_info.push(format!("{} bytes", bytes.len()));
+                    }
+                    if !additional_info.is_empty() {
+                        info += &format!(" ({})", additional_info.join(", "));
+                    }
+
+                    ui.label(info);
                 });
+
+            // If the window is closed, mark the file for removal
             if !open {
-                self.dropped_files.clear();
+                indices_to_remove.push(index);
             }
+        }
+
+        // Remove closed files
+        for index in indices_to_remove.into_iter().rev() {
+            self.dropped_files.remove(index);
         }
     }
 }
