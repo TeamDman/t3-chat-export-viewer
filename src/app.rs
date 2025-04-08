@@ -1,10 +1,12 @@
 use eframe::egui;
+use eframe::egui::ScrollArea;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
 use std::time::Duration;
 use tokio::runtime::Handle;
 use tracing::info;
+use tracing::warn;
 
 use crate::t3_json::T3Json;
 
@@ -36,10 +38,16 @@ impl MyDroppedFile {
     pub async fn from_async(file: egui::DroppedFile) -> Self {
         info!(
             "Attempting to parse T3Json from dropped file: {:?}",
-            file.name
+            file.path
         );
-        if let Ok(t3_json) = T3Json::try_from_async(file.clone()).await {
-            return MyDroppedFile::T3Json { file, t3_json };
+        match T3Json::try_from_async(file.clone()).await {
+            Ok(t3_json) => {
+                info!("Parsed T3Json successfully");
+                return MyDroppedFile::T3Json { file, t3_json };
+            }
+            Err(e) => {
+                warn!("Failed to parse T3Json {:?}: {:#?}", file.path, e);
+            }
         }
         MyDroppedFile::Unknown { file }
     }
@@ -150,33 +158,13 @@ impl MyApp {
         // Show each dropped file in its own window:
         let mut indices_to_remove = vec![];
         for (index, file) in self.dropped_files.iter_mut().enumerate() {
-            let file = file.dropped_file();
             let mut open = true;
 
-            egui::Window::new(format!("Dropped File: {}", file.name))
-                .id(Id::new(file.path.clone()))
+            egui::Window::new(format!("Dropped File: {}", file.dropped_file().name))
+                .id(Id::new(file.dropped_file().path.clone()))
                 .open(&mut open)
                 .show(ctx, |ui| {
-                    let mut info = if let Some(path) = &file.path {
-                        path.display().to_string()
-                    } else if !file.name.is_empty() {
-                        file.name.clone()
-                    } else {
-                        "???".to_owned()
-                    };
-
-                    let mut additional_info = vec![];
-                    if !file.mime.is_empty() {
-                        additional_info.push(format!("type: {}", file.mime));
-                    }
-                    if let Some(bytes) = &file.bytes {
-                        additional_info.push(format!("{} bytes", bytes.len()));
-                    }
-                    if !additional_info.is_empty() {
-                        info += &format!(" ({})", additional_info.join(", "));
-                    }
-
-                    ui.label(info);
+                    draw_dropped_file(file, ui);
                 });
 
             // If the window is closed, mark the file for removal
@@ -190,4 +178,113 @@ impl MyApp {
             self.dropped_files.remove(index);
         }
     }
+}
+
+fn draw_dropped_file(file: &MyDroppedFile, ui: &mut egui::Ui) {
+    match file {
+        MyDroppedFile::T3Json { file, t3_json } => {
+            let file_info = if let Some(path) = &file.path {
+                path.display().to_string()
+            } else if !file.name.is_empty() {
+                file.name.clone()
+            } else {
+                "???".to_owned()
+            };
+
+            ui.label(format!("File: {}", file_info));
+            ui.label(format!("Type: {}", file.mime));
+            if let Some(bytes) = &file.bytes {
+                ui.label(format!("Size: {} bytes", bytes.len()));
+            }
+            ui.separator();
+            ui.label("Parsed T3Json Content:");
+            // ui.monospace(format!("{:?}", t3_json)); // Display the parsed T3Json content
+            draw_t3_json(t3_json, ui);
+        }
+        MyDroppedFile::Unknown { file } => {
+            let file_info = if let Some(path) = &file.path {
+                path.display().to_string()
+            } else if !file.name.is_empty() {
+                file.name.clone()
+            } else {
+                "???".to_owned()
+            };
+
+            ui.label(format!("File: {}", file_info));
+            ui.label(format!("Type: {}", file.mime));
+            if let Some(bytes) = &file.bytes {
+                ui.label(format!("Size: {} bytes", bytes.len()));
+            }
+            ui.separator();
+            ui.label("This file could not be parsed as T3Json.");
+        }
+    }
+}
+
+fn draw_t3_json(t3_json: &T3Json, ui: &mut egui::Ui) {
+    ui.horizontal(|ui| {
+        ui.label("Threads:");
+        ui.monospace(format!("{:?}", t3_json.threads.len()));
+    });
+
+    // Draw each thread as an expando
+    ScrollArea::both().show(ui, |ui| {
+        for thread in &t3_json.threads {
+            egui::CollapsingHeader::new(format!(
+                "Thread: {}",
+                thread.title.lines().next().unwrap_or(&thread.id)
+            ))
+            .default_open(false)
+            .id_salt(thread.id.clone())
+            .show(ui, |ui| {
+                ui.horizontal(|ui| {
+                    // Add a "Copy" button
+                    if ui.button("Copy").clicked() {
+                        // Collect the thread and its associated messages
+                        let thread_data = serde_json::json!({
+                            "thread": thread,
+                            "messages": t3_json.messages.iter()
+                                .filter(|m| m.thread_id == thread.id)
+                                .collect::<Vec<_>>(),
+                        });
+
+                        // Copy the JSON to the clipboard
+                        if let Ok(json_string) = serde_json::to_string_pretty(&thread_data) {
+                            ui.output_mut(|o| {
+                                o.commands.push(egui::OutputCommand::CopyText(json_string))
+                            });
+                        }
+                    }
+
+                    // Display the thread title
+                    ui.label(format!("Thread: {}", thread.title));
+                });
+
+                ui.label(format!("Thread ID: {}", thread.id));
+                ui.label(format!("Created At: {}", thread.created_at));
+                if let Some(updated_at) = thread.updated_at {
+                    ui.label(format!("Updated At: {}", updated_at));
+                }
+                ui.label(format!("Last Message At: {}", thread.last_message_at));
+                ui.label(format!("Status: {:?}", thread.status));
+                ui.separator();
+
+                // Show messages within the thread
+                for message in t3_json.messages.iter().filter(|m| m.thread_id == thread.id) {
+                    ui.horizontal(|ui| {
+                        ui.label(format!("Role: {:?}", message.role));
+                        ui.label(format!(
+                            "Message: {}",
+                            if message.content.len() > 256 {
+                                format!("{}...", &message.content[..256])
+                            } else {
+                                message.content.clone()
+                            }
+                        ));
+                    });
+                    ui.separator();
+                }
+            });
+        }
+    });
 }
