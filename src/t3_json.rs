@@ -6,7 +6,6 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 use tracing::info;
-use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct T3Json {

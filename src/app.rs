@@ -89,10 +89,12 @@ impl eframe::App for MyApp {
         }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.vertical(|ui| {
-                ui.heading("T3 Chat Export Viewer");
-                ui.separator();
-            });
+            if self.dropped_files.is_empty() {
+                ui.vertical(|ui| {
+                    ui.heading("Drag a file to get started");
+                    ui.separator();
+                });
+            }
         });
 
         self.ui_file_drag_and_drop(ctx);
@@ -192,7 +194,6 @@ fn draw_dropped_file(file: &MyDroppedFile, ui: &mut egui::Ui) {
             };
 
             ui.label(format!("File: {}", file_info));
-            ui.label(format!("Type: {}", file.mime));
             if let Some(bytes) = &file.bytes {
                 ui.label(format!("Size: {} bytes", bytes.len()));
             }
