@@ -2,6 +2,10 @@
 
 T3 Chat Export Viewer is a desktop application built using [`egui`](https://github.com/emilk/egui) and [`eframe`](https://github.com/emilk/egui/tree/master/crates/eframe). It allows users to drag and drop T3 JSON files, view their contents in a structured format, and interact with the data.
 
+
+https://github.com/user-attachments/assets/9303adff-0c3e-4400-ae5b-a67e62e938dd
+
+
 ## Features
 
 - **Drag-and-Drop Support**: Easily drop T3 JSON files into the application.
@@ -38,9 +42,6 @@ T3 Chat Export Viewer is a desktop application built using [`egui`](https://gith
    - Expand threads to view their details and messages.
    - Use the "Copy" button to copy thread data and messages as JSON.
 
-## Screenshots
-
-![Screenshot](screenshot.png)
 
 ## Acknowledgments
 
