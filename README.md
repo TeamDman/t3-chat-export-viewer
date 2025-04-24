@@ -45,3 +45,69 @@ T3 Chat Export Viewer is a desktop application built using [`egui`](https://gith
 ## Acknowledgments
 
 - Built with [`egui`](https://github.com/emilk/egui) and [`eframe`](https://github.com/emilk/egui/tree/master/crates/eframe).
+- Thanks Theo for making t3.chat
+
+## Side notes
+
+Ctrl+f in devtools sources for "Exporting your chat data..." to find the download logic
+
+```js
+        async function e1() {
+            return _.oR.promise(async () => {
+                let e = new Blob([JSON.stringify({
+                    threads: await B.threads.toArray(),
+                    messages: await B.messages.toArray()
+                })],{
+                    type: "application/json"
+                })
+                  , t = URL.createObjectURL(e)
+                  , s = document.createElement("a");
+                return s.href = t,
+                s.download = "t3chat-export-".concat(new Date().toISOString(), ".json"),
+                document.body.appendChild(s),
+                s.click(),
+                document.body.removeChild(s),
+                URL.revokeObjectURL(t),
+                {
+                    success: !0
+                }
+            }
+            , {
+                loading: "Exporting your chat data...",
+                success: {
+                    message: "Export completed successfully",
+                    description: "Your chat data has been exported.",
+                    duration: 5e3
+                },
+                error: e => (console.error("[IMPORT-EXPORT] Error exporting data:", e),
+                {
+                    message: "Export failed",
+                    description: "There was an error exporting your chat data.",
+                    duration: 1 / 0,
+                    closeButton: !0
+                })
+            })
+        }
+```
+
+we can see that the payload is constructed using 
+
+```js
+JSON.stringify({
+   threads: await B.threads.toArray(),
+   messages: await B.messages.toArray()
+})
+```
+
+and I remember in a video Theo mentioning that the db is exposed in the devtools
+
+There's a global `dxdb` object, so we can call
+
+```js
+copy(JSON.stringify({
+   threads: await dxdb.threads.toArray(),
+   messages: await dxdb.messages.toArray(),
+}, null, 2))
+```
+
+which puts in our clipboard a pretty-printed JSON export, the same as if we had clicked the export button.c
