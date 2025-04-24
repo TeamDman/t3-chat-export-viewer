@@ -1,15 +1,17 @@
 // src/main.rs
 
 mod app;
+pub mod charts;
 mod init;
 pub mod t3_json;
 
 use app::MyApp;
 use eframe::egui;
 use eyre::Result;
-use tracing::{error, info};
 use std::time::Duration;
 use tokio::runtime::Runtime;
+use tracing::error;
+use tracing::info;
 
 fn main() -> Result<()> {
     init::init()?;
