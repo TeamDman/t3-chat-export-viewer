@@ -4,6 +4,7 @@ mod app;
 pub mod charts;
 mod init;
 pub mod t3_json;
+pub mod t3_timestamp;
 
 use app::MyApp;
 use eframe::egui;
