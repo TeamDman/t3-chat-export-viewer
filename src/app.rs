@@ -324,17 +324,16 @@ fn draw_t3_json_threads(t3_json: &T3Json, ui: &mut egui::Ui, search_query: &str)
 
     let query = search_query.to_lowercase();
 
-    // Build a thread_id -> messages index once to avoid repeated full scans
-    let messages_by_thread: HashMap<&str, Vec<&crate::t3_json::T3Message>> =
-        t3_json.messages.iter().fold(HashMap::new(), |mut map, m| {
-            map.entry(m.thread_id.as_str()).or_default().push(m);
-            map
-        });
-
     // When a search is active, collect matching threads and show a count
     let matching_threads: Vec<&crate::t3_json::T3Thread> = if query.is_empty() {
         t3_json.threads.iter().collect()
     } else {
+        // Build a thread_id -> messages index only when a search is active
+        let messages_by_thread: HashMap<&str, Vec<&crate::t3_json::T3Message>> =
+            t3_json.messages.iter().fold(HashMap::new(), |mut map, m| {
+                map.entry(m.thread_id.as_str()).or_default().push(m);
+                map
+            });
         t3_json
             .threads
             .iter()
