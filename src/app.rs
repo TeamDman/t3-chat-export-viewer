@@ -15,6 +15,10 @@ use crate::charts::ChartState;
 use crate::charts::ChartType;
 use crate::t3_json::T3Json; // Import ChartState and ChartType
 
+fn thread_url(thread_id: &str) -> String {
+    format!("https://t3.chat/chat/{thread_id}")
+}
+
 pub enum UiBoundMessage {
     ContentLoaded(MyDroppedFile),
 }
@@ -377,6 +381,10 @@ fn draw_t3_json_threads(t3_json: &T3Json, ui: &mut egui::Ui, search_query: &str)
                     ScrollArea::vertical().max_height(200.0).show(ui, |ui| {
                         // Example max height
                         ui.horizontal(|ui| {
+                            if ui.button("Open Thread").clicked() {
+                                ui.ctx().open_url(egui::OpenUrl::new_tab(thread_url(&thread.id)));
+                            }
+
                             // Add a "Copy" button
                             if ui.button("Copy Thread JSON").clicked() {
                                 // Collect the thread and its associated messages
