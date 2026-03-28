@@ -9,6 +9,7 @@ pub mod t3_timestamp;
 use app::MyApp;
 use eframe::egui;
 use eyre::Result;
+use std::env;
 use std::time::Duration;
 use tokio::runtime::Runtime;
 use tracing::error;
@@ -20,6 +21,7 @@ fn main() -> Result<()> {
 
     // 1) Create a Tokio runtime
     let rt = Runtime::new()?;
+    let initial_paths = env::args_os().skip(1).map(Into::into).collect();
 
     // 2) Keep the runtime alive in a separate thread:
     std::thread::spawn({
@@ -42,7 +44,7 @@ fn main() -> Result<()> {
     });
 
     // 3) Pass the runtime HANDLE (not the entire runtime) into our MyApp.
-    let app = MyApp::new(rt.handle().clone());
+    let app = MyApp::new(rt.handle().clone(), initial_paths);
 
     // 4) Launch eframe:
     let native_options = eframe::NativeOptions {

@@ -3,6 +3,7 @@
 use eframe::egui;
 use eframe::egui::CollapsingHeader;
 use eframe::egui::ScrollArea;
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::sync::mpsc::Receiver;
 use std::sync::mpsc::Sender;
@@ -78,15 +79,44 @@ impl MyDroppedFile {
 }
 
 impl MyApp {
-    pub fn new(rt_handle: Handle) -> Self {
+    pub fn new(rt_handle: Handle, initial_paths: Vec<PathBuf>) -> Self {
         let (tx, rx) = mpsc::channel();
 
-        Self {
+        let app = Self {
             tx,
             rx,
-            rt_handle,
+            rt_handle: rt_handle.clone(),
             dropped_files: vec![],
+        };
+
+        app.load_files(initial_paths);
+
+        app
+    }
+
+    fn load_files(&self, paths: Vec<PathBuf>) {
+        if paths.is_empty() {
+            return;
         }
+
+        let tx = self.tx.clone();
+        self.rt_handle.spawn(async move {
+            for path in paths {
+                let name = path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().into_owned())
+                    .unwrap_or_else(|| path.display().to_string());
+                let file = egui::DroppedFile {
+                    path: Some(path),
+                    name,
+                    mime: String::new(),
+                    last_modified: None,
+                    bytes: None,
+                };
+                tx.send(UiBoundMessage::ContentLoaded(MyDroppedFile::from_async(file).await))
+                    .ok();
+            }
+        });
     }
 }
 

@@ -1,6 +1,6 @@
 # T3 Chat Export Viewer
 
-T3 Chat Export Viewer is a desktop application built using [`egui`](https://github.com/emilk/egui) and [`eframe`](https://github.com/emilk/egui/tree/master/crates/eframe). It allows users to drag and drop T3 JSON files, view their contents in a structured format, and interact with the data.
+T3 Chat Export Viewer is a desktop application built using [`egui`](https://github.com/emilk/egui) and [`eframe`](https://github.com/emilk/egui/tree/master/crates/eframe). It allows users to drag and drop T3 JSON files or pass them on the command line, view their contents in a structured format, and interact with the data.
 
 
 https://github.com/user-attachments/assets/9303adff-0c3e-4400-ae5b-a67e62e938dd
@@ -9,6 +9,7 @@ https://github.com/user-attachments/assets/9303adff-0c3e-4400-ae5b-a67e62e938dd
 ## Features
 
 - **Drag-and-Drop Support**: Easily drop T3 JSON files into the application.
+- **Command-Line File Loading**: Open one or more exported JSON files at launch by passing their paths as arguments.
 - **Thread Viewer**: Displays threads in an expandable format.
 - **Message Viewer**: View messages within threads, truncated to 256 characters for readability.
 - **Copy to Clipboard**: Copy thread data and associated messages as JSON with a single click.
@@ -16,7 +17,7 @@ https://github.com/user-attachments/assets/9303adff-0c3e-4400-ae5b-a67e62e938dd
 
 ## How It Works
 
-1. **Drag and Drop**: Drop a T3 JSON file into the application window.
+1. **Open Files**: Drop a T3 JSON file into the application window or pass one or more file paths when launching the app.
 2. **Thread Display**: Each thread is displayed as an expandable section.
 3. **Message Display**: Messages within a thread are shown when the thread is expanded.
 4. **Copy Functionality**: Use the "Copy" button next to a thread title to copy the thread and its messages as JSON to the clipboard.
@@ -34,10 +35,15 @@ https://github.com/user-attachments/assets/9303adff-0c3e-4400-ae5b-a67e62e938dd
    cargo run
    ```
 
+    Or start it with exported files already loaded:
+    ```sh
+    cargo run -- path/to/export-1.json path/to/export-2.json
+    ```
+
 ## Usage
 
 1. Launch the application.
-2. Drag and drop a T3 JSON file into the application window.
+2. Drag and drop a T3 JSON file into the application window, or launch the app with one or more JSON file paths.
 3. Interact with the threads and messages:
    - Expand threads to view their details and messages.
    - Use the "Copy" button to copy thread data and messages as JSON.
