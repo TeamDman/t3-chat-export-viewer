@@ -34,7 +34,8 @@ pub enum MyDroppedFile {
     T3Json {
         file: egui::DroppedFile,
         t3_json: T3Json,
-        chart_state: ChartState, // Add ChartState here
+        chart_state: ChartState,
+        search_query: String,
     },
     Unknown {
         file: egui::DroppedFile,
@@ -55,6 +56,7 @@ impl MyDroppedFile {
                     file,
                     t3_json,
                     chart_state,
+                    search_query: String::new(),
                 };
             }
             Err(e) => {
@@ -208,6 +210,7 @@ fn draw_dropped_file(file: &mut MyDroppedFile, ui: &mut egui::Ui) {
             file,
             t3_json,
             chart_state,
+            search_query,
         } => {
             ScrollArea::both().show(ui, |ui| {
                 // Get mutable access to chart_state
@@ -282,8 +285,14 @@ fn draw_dropped_file(file: &mut MyDroppedFile, ui: &mut egui::Ui) {
 
                 ui.separator();
                 ui.heading("Threads");
-                // ui.monospace(format!("{:?}", t3_json)); // Display the parsed T3Json content - potentially large
-                draw_t3_json_threads(t3_json, ui); // Use a dedicated function for threads
+                ui.horizontal(|ui| {
+                    ui.label("Search:");
+                    ui.text_edit_singleline(search_query);
+                    if !search_query.is_empty() && ui.button("✕").clicked() {
+                        search_query.clear();
+                    }
+                });
+                draw_t3_json_threads(t3_json, ui, search_query);
             });
         }
         MyDroppedFile::Unknown { file } => {
@@ -310,12 +319,48 @@ fn draw_dropped_file(file: &mut MyDroppedFile, ui: &mut egui::Ui) {
 }
 
 // Function to draw the threads part of the T3Json view
-fn draw_t3_json_threads(t3_json: &T3Json, ui: &mut egui::Ui) {
+fn draw_t3_json_threads(t3_json: &T3Json, ui: &mut egui::Ui, search_query: &str) {
+    use std::collections::HashMap;
+
+    let query = search_query.to_lowercase();
+
+    // When a search is active, collect matching threads and show a count
+    let matching_threads: Vec<&crate::t3_json::T3Thread> = if query.is_empty() {
+        t3_json.threads.iter().collect()
+    } else {
+        // Build a thread_id -> messages index only when a search is active
+        let messages_by_thread: HashMap<&str, Vec<&crate::t3_json::T3Message>> =
+            t3_json.messages.iter().fold(HashMap::new(), |mut map, m| {
+                map.entry(m.thread_id.as_str()).or_default().push(m);
+                map
+            });
+        t3_json
+            .threads
+            .iter()
+            .filter(|thread| {
+                thread.title.to_lowercase().contains(&query)
+                    || messages_by_thread
+                        .get(thread.id.as_str())
+                        .map_or(false, |msgs| {
+                            msgs.iter().any(|m| m.content.to_lowercase().contains(&query))
+                        })
+            })
+            .collect()
+    };
+
+    if !query.is_empty() {
+        ui.label(format!(
+            "{} / {} threads match",
+            matching_threads.len(),
+            t3_json.threads.len()
+        ));
+    }
+
     // Draw each thread as an expando
     // Use ScrollArea here to contain the threads list specifically
     ScrollArea::vertical().show(ui, |ui| {
         // vertical scroll for the threads list
-        for thread in &t3_json.threads {
+        for thread in &matching_threads {
             // Use a simpler title if the actual title is too long for the header
             let display_title = if thread.title.len() > 80 {
                 // Arbitrary length limit
